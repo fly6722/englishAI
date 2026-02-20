@@ -4,7 +4,7 @@ from groq import Groq
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -16,7 +16,7 @@ def correct():
     response = client.chat.completions.create(
         model="llama3-8b-8192",
         messages=[
-            {"role": "system", "content": "You are an English teacher. Correct the grammar. Return only the corrected sentence."},
+            {"role": "system", "content": "You are an English teacher. Correct grammar only."},
             {"role": "user", "content": sentence}
         ]
     )
@@ -31,6 +31,3 @@ def correct():
 @app.route("/")
 def home():
     return "English AI Server Running (Groq)"
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
