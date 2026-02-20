@@ -1,70 +1,60 @@
+import os
+import tempfile
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from groq import Groq
-import os
-import tempfile
 
 app = Flask(__name__)
 CORS(app)
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# =========================
-# 1️⃣ 語音轉文字 (STT)
-# =========================
-@app.route("/stt", methods=["POST"])
-def speech_to_text():
+@app.route("/")
+def home():
+    return "AI English Practice Machine Running!"
+
+@app.route("/practice", methods=["POST"])
+def practice():
+
     if "file" not in request.files:
-        return jsonify({"error": "No audio file"}), 400
+        return jsonify({"error": "No file uploaded"}), 400
 
     audio_file = request.files["file"]
 
-    with tempfile.NamedTemporaryFile(delete=False) as temp_audio:
+    # 🔹 存成暫存檔
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
         audio_file.save(temp_audio.name)
 
+        # 🔹 1️⃣ 語音轉文字
         transcription = client.audio.transcriptions.create(
             file=(audio_file.filename, open(temp_audio.name, "rb")),
             model="whisper-large-v3"
         )
 
-    return jsonify({
-        "text": transcription.text
-    })
+    original_text = transcription.text.strip()
 
-
-# =========================
-# 2️⃣ 文法修正 (LLM)
-# =========================
-@app.route("/correct", methods=["POST"])
-def correct():
-    data = request.json
-    sentence = data.get("sentence")
-
-    response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        temperature=0,
+    # 🔹 2️⃣ 文法修正
+    correction = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
-                "content": "Return ONLY the corrected sentence. No explanation. No extra words."
+                "content": "You are an English grammar correction teacher. Return JSON with keys: corrected and explanation."
             },
-            {"role": "user", "content": sentence}
-        ]
+            {
+                "role": "user",
+                "content": f"Correct this sentence: {original_text}"
+            }
+        ],
+        temperature=0.2
     )
 
-    corrected = response.choices[0].message.content.strip()
+    result_text = correction.choices[0].message.content
 
     return jsonify({
-        "original": sentence,
-        "corrected": corrected
+        "original": original_text,
+        "result": result_text
     })
 
-
-@app.route("/")
-def home():
-    return "AI English Machine Backend Running"
-
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run()
