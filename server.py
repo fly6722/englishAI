@@ -1,31 +1,23 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from openai import OpenAI
+from groq import Groq
 import os
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 @app.route("/correct", methods=["POST"])
 def correct():
     data = request.json
     sentence = data.get("sentence")
 
-    prompt = f"""
-You are an English teacher.
-Correct the grammar of this sentence.
-Return only the corrected sentence.
-
-Sentence:
-{sentence}
-"""
-
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="llama3-8b-8192",
         messages=[
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": "You are an English teacher. Correct the grammar. Return only the corrected sentence."},
+            {"role": "user", "content": sentence}
         ]
     )
 
@@ -38,7 +30,7 @@ Sentence:
 
 @app.route("/")
 def home():
-    return "English AI Server Running"
+    return "English AI Server Running (Groq)"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
