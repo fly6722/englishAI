@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import openai
 import os
 
 app = Flask(__name__)
+CORS(app)
 
-# 用環境變數存 API key（不要寫死）
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/correct", methods=["POST"])
