@@ -23,7 +23,7 @@ def speech_to_text():
         audio_file.save(temp_audio.name)
 
         transcription = client.audio.transcriptions.create(
-            file=open(temp_audio.name, "rb"),
+            file=(audio_file.filename, open(temp_audio.name, "rb")),
             model="whisper-large-v3"
         )
 
